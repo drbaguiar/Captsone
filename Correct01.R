@@ -1,0 +1,2 @@
+sorted_words <- names(sort(table(strsplit(tolower(paste(readLines("bagofwordsunique.txt"), collapse = " ")), "[^a-z]+")), decreasing = TRUE))
+correct <- function(word) { c(sorted_words[ adist(word, sorted_words) <= min(adist(word, sorted_words), 2)], word)[1] }

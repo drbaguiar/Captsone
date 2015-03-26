@@ -1,0 +1,201 @@
+---
+title: "Capstone Project"
+author: "Bryan Aguiar"
+date: "Monday, March 23, 2015"
+output: html_document
+---
+```{r acqusistion,warning=FALSE,message=FALSE,}
+# Clear
+rm(list=ls())
+
+# Turn off scientific notations for numbers
+options(scipen = 999)  
+
+# Set locale
+Sys.setlocale("LC_ALL", "English") 
+
+# Set seed for reproducibility
+set.seed(2345)
+
+# Set the working directory and load the needed libraries
+setwd("G:/DataCapstone")
+library(tm)
+library(RWeka)
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+
+# Function to subsample the large text files
+subsamfile <- function(infile,outfile,k,header=T) {
+  ci <- file(infile,"r")
+  co <- file(outfile,"w")
+  if (header) {
+    hdr <- readLines(ci,n=1)
+    writeLines(hdr,co)
+  }
+  recnum = 0
+  numout = 0
+  while (TRUE) {
+    inrec <- readLines(ci,n=1)
+    if (length(inrec) == 0) {  # end of file?
+      close(co) 
+      return(numout)
+    }
+    recnum <- recnum + 1
+    if (recnum %% k == 0) {
+      numout <- numout + 1
+      writeLines(inrec,co)
+    }
+  }
+}
+
+# Function to count lines in a text file
+linecount <- function(infile) {
+  testconn <- file(infile, open="r") 
+  csize <- 10000 
+  nolines <- 0 
+  while((readnlines <- length(readLines(testconn,csize))) >0 ) 
+    nolines <- nolines+readnlines 
+  close(testconn) 
+  return(nolines)
+}
+
+# Functions to build n grams
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
+
+# Function to convert tdms to data frame
+dfit <- function (file){
+  m <- as.matrix(file)
+  v <- sort(rowSums(m),decreasing=TRUE)
+  df <- data.frame(word = names(v),freq=v)
+  head(df, 10)
+  return (df)
+}
+
+# Function to make a Top 10 Barchart
+barit <-function(df){
+barplot(df[1:10,]$freq, las = 2, names.arg = df[1:10,]$word,
+        col ="lightblue", main ="10 Frequent Words",
+        ylab = "Word Frequencies")
+}
+
+# Function to make a wordcloud
+wordit <- function(df) {
+  wordcloud(words = df$word, freq = df$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+}
+
+#Count lines
+blogslinecnt <- linecount("en_US.blogs.txt")
+newslinecnt <-linecount("en_US.news.txt")
+twitterlinecnt <-linecount("en_US.twitter.txt")
+```
+##Introduction
+The purpose of this capstone project is to predict a successive word after a word is typed by the user. The final product will be a web application that allows a user to input text into a text field. The application will predict what words comes next and display a few words that are predicted. The user can click on these words for faster user input if the words are correctly predicted or continue to type. As the user continues to input characters the application will continue to display predicted words on the sequence of character inputs. 
+
+##Data Acquisition
+The Coursera-SwiftKey.zip was downloaded from the Coursera page <https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip> and consisted of three files:
+en_US.blogs.txt, size ```r format(file.info("en_US.blogs.txt")$size,big.mark=",") ``` bytes consisting of ```r format(blogslinecnt,big.mark=",")``` lines, 
+en_US.news.txt size ```r format(file.info("en_US.news.txt")$size,big.mark=",") ``` bytes consisting of ```r format(newslinecnt,big.mark=",")``` lines, and 
+en_US.twitter.txt size ```r format(file.info("en_US.twitter.txt")$size,big.mark=",") ``` bytes consisting of ```r format(twitterlinecnt,big.mark=",")``` lines.
+
+The training data set was limited to 1% of the lines from the twitter, news, and blog text files. This training set was selected by taking a random sample of each of the twitter, news, and blog text data files. 
+```{r sampling,warning=FALSE,message=FALSE}
+# Subset the data. This only needs to be run 1 time for each file
+#nbr = 100 # 1% of the records
+#subsamfile("en_US.news.txt","newsout.txt",nbr)
+#subsamfile("en_US.blogs.txt","blogout.txt",nbr)
+#subsamfile("en_US.twitter.txt","twitterout.txt",nbr)
+
+# Create the trainingset
+txt <- paste(readLines("newsout.txt"),readLines("twitterout.txt"),readLines("blogout.txt"))
+```
+
+##Data Cleaning
+The training set was converted to a corpus using the tm package.  The corpus was clean to remove punctuation, to remove numbers, to convert to lower case, and to strip white spaces.  Next,  stop words were removed from the corpus. Finally, a file containing profanity was loaded and words in the file were removed from the corpus.  
+```{r cleaning,warning=FALSE,message=FALSE}
+# Create a corpus
+corpus <- Corpus(VectorSource(txt))
+#save ("txt", file="txt.Rdata")
+#save ("corpus", file="corpus.Rdata")
+rm(txt)
+
+# Clean the corpus
+toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, stripWhitespace)
+corpus <- tm_map(corpus, toSpace, "@")
+#corpus <- tm_map(corpus, content_transformer(stemDocument))
+
+# remove profanity 
+badwords <- readLines('badwords.txt') 
+corpus <- tm_map(corpus, removeWords, badwords)
+```
+
+The corpus was converted into Term Document Matrices using the tm package.  Bigram and Trigram TDMs were created.  Next, sparse words were removed from all the TDMs using threshold values varying of at least .99.  
+```{r}
+# create a tdm
+tdm <- TermDocumentMatrix(corpus)
+dtm <- DocumentTermMatrix(corpus)
+#save ("tdm", file ="tdm.Rdata")
+#save ("dtm", file ="dtm.Rdata")
+
+# Create N grams
+bigram <- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer))
+#save ("bigram",file="bigram.Rdata")
+trigram <- TermDocumentMatrix(corpus, control = list(tokenize = TrigramTokenizer))
+#save ("trigram",file="trigram.Rdata")
+
+# remove the corpus
+rm(corpus)
+
+# remove sparse terms
+tdm <- removeSparseTerms(tdm, sparse=0.99)
+dtm <- removeSparseTerms(dtm, sparse=0.99)
+bigram <- removeSparseTerms(bigram, sparse=0.998)
+trigram <- removeSparseTerms(trigram, sparse=0.9986)
+```
+
+##Graphical Respresentations
+```{r graphs,warning=FALSE,message=FALSE}
+# Counts 
+#rowSums(as.matrix(tdm))
+#colSums(as.matrix(dtm))
+#rowSums(as.matrix(bigram))
+#rowSums(as.matrix(trigram))
+
+# Convert to dataframe and make barchart and words cloud
+df <-dfit(tdm)
+barit(df)
+wordit(df)
+
+df <-dfit(bigram)
+barit(df)
+wordit(df)
+
+df <-dfit(trigram)
+barit(df)
+wordit(df)
+```
+
+##Next Steps: Building Predictive Model
+The exact methodology to produce a model for predictive typing has not been finalized at this point. Planned elements include:
+
+  n-gram model: as described in [Task 3], a n-gram model will be built based on the n-gram analysis above.
+
+  back-off model: for n-grams not observed in the training material, use back-off model to estimate the conditional probability of a given word.
+
+  auto-correction: use edit-distance based matrix to achieve text auto-correction.
+online model: track and analyze user's input and selection to improve the model accuracy.
+
+  Ideally, multiply predictive models will be constructed and combined in the Shiny application. The models will be ranked based on their accuracy and efficiency, and selectively dispatched in different context.
+
+For the predictive model, the Shiny application will allow the user to enter text. As the input is being provided word by word, it will be evaluated against the predictive model which will determine what word or a set of words (up to 5) are the most likely be the next token the user will input based. 
+
+---
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
