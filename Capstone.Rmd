@@ -110,7 +110,7 @@ The training data set was limited to 1% of the lines from the twitter, news, and
 #subsamfile("en_US.twitter.txt","twitterout.txt",nbr)
 
 # Create the trainingset
-txt <- paste(readLines("newsout.txt"),readLines("twitterout.txt"),readLines("blogout.txt"))
+txt <- paste(readLines("G:/DataCapstone/newsout.txt"),readLines("G:/DataCapstone/twitterout.txt"),readLines("G:/DataCapstone/blogout.txt"))
 ```
 
 ##Data Cleaning
@@ -133,7 +133,7 @@ corpus <- tm_map(corpus, toSpace, "@")
 #corpus <- tm_map(corpus, content_transformer(stemDocument))
 
 # remove profanity 
-badwords <- readLines('badwords.txt') 
+badwords <- readLines('G:/DataCapstone/badwords.txt') 
 corpus <- tm_map(corpus, removeWords, badwords)
 ```
 

@@ -159,7 +159,7 @@ twitterlinecnt &lt;-linecount(&quot;en_US.twitter.txt&quot;)</code></pre>
 </div>
 <div id="data-acquisition" class="section level2">
 <h2>Data Acquisition</h2>
-<p>The Coursera-SwiftKey.zip was downloaded from the Coursera page <a href="https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip" class="uri">https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip</a> and consisted of three files: en_US.blogs.txt, size <code>210,160,014</code> bytes consisting of <code>899,288</code> lines, en_US.news.txt size <code>205,811,889</code> bytes consisting of <code>77,259</code> lines, and en_US.twitter.txt size <code>167,105,338</code> bytes consisting of <code>2,360,148</code> lines.</p>
+<p>The Coursera-SwiftKey.zip was downloaded from the Coursera page <a href="https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip" class="uri">https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip</a> and consisted of three files: en_US.blogs.txt, size <code>NA</code> bytes consisting of <code>899,288</code> lines, en_US.news.txt size <code>NA</code> bytes consisting of <code>77,259</code> lines, and en_US.twitter.txt size <code>NA</code> bytes consisting of <code>2,360,148</code> lines.</p>
 <p>The training data set was limited to 1% of the lines from the twitter, news, and blog text files. This training set was selected by taking a random sample of each of the twitter, news, and blog text data files.</p>
 <pre class="r"><code># Subset the data. This only needs to be run 1 time for each file
 #nbr = 100 # 1% of the records
@@ -168,7 +168,7 @@ twitterlinecnt &lt;-linecount(&quot;en_US.twitter.txt&quot;)</code></pre>
 #subsamfile(&quot;en_US.twitter.txt&quot;,&quot;twitterout.txt&quot;,nbr)
 
 # Create the trainingset
-txt &lt;- paste(readLines(&quot;newsout.txt&quot;),readLines(&quot;twitterout.txt&quot;),readLines(&quot;blogout.txt&quot;))</code></pre>
+txt &lt;- paste(readLines(&quot;G:/DataCapstone/newsout.txt&quot;),readLines(&quot;G:/DataCapstone/twitterout.txt&quot;),readLines(&quot;G:/DataCapstone/blogout.txt&quot;))</code></pre>
 </div>
 <div id="data-cleaning" class="section level2">
 <h2>Data Cleaning</h2>
@@ -190,7 +190,7 @@ corpus &lt;- tm_map(corpus, toSpace, &quot;@&quot;)
 #corpus &lt;- tm_map(corpus, content_transformer(stemDocument))
 
 # remove profanity 
-badwords &lt;- readLines('badwords.txt') 
+badwords &lt;- readLines('G:/DataCapstone/badwords.txt') 
 corpus &lt;- tm_map(corpus, removeWords, badwords)</code></pre>
 <p>The corpus was converted into Term Document Matrices using the tm package. Bigram and Trigram TDMs were created. Next, sparse words were removed from all the TDMs using threshold values varying of at least .99.</p>
 <pre class="r"><code># create a tdm
@@ -204,6 +204,9 @@ bigram &lt;- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenize
 #save (&quot;bigram&quot;,file=&quot;bigram.Rdata&quot;)
 trigram &lt;- TermDocumentMatrix(corpus, control = list(tokenize = TrigramTokenizer))
 #save (&quot;trigram&quot;,file=&quot;trigram.Rdata&quot;)
+
+# remove the corpus
+rm(corpus)
 
 # remove sparse terms
 tdm &lt;- removeSparseTerms(tdm, sparse=0.99)
