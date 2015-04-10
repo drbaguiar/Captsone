@@ -21,9 +21,9 @@ set.seed(2345)
 setwd("G:/DataCapstone")
 library(tm)
 library(RWeka)
-library("SnowballC")
-library("wordcloud")
-library("RColorBrewer")
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
 
 # Function to subsample the large text files
 subsamfile <- function(infile,outfile,k,header=T) {
@@ -63,7 +63,7 @@ linecount <- function(infile) {
 # Functions to build n grams
 BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
 TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3))
-
+FourgramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 4, max = 4))
 # Function to convert tdms to data frame
 dfit <- function (file){
   m <- as.matrix(file)
@@ -150,35 +150,51 @@ bigram <- TermDocumentMatrix(corpus, control = list(tokenize = BigramTokenizer))
 #save ("bigram",file="bigram.Rdata")
 trigram <- TermDocumentMatrix(corpus, control = list(tokenize = TrigramTokenizer))
 #save ("trigram",file="trigram.Rdata")
+fourgram <- TermDocumentMatrix(corpus, control = list(tokenize = FourgramTokenizer))
+#save ("Fourgram",file="fourgram.Rdata")
 
 # remove the corpus
 rm(corpus)
 
 # remove sparse terms
-tdm <- removeSparseTerms(tdm, sparse=0.99)
-dtm <- removeSparseTerms(dtm, sparse=0.99)
-bigram <- removeSparseTerms(bigram, sparse=0.998)
-trigram <- removeSparseTerms(trigram, sparse=0.9986)
+sparsetdm <- removeSparseTerms(tdm, sparse=0.99)
+sparsedtm <- removeSparseTerms(dtm, sparse=0.99)
+sparsebigram <- removeSparseTerms(bigram, sparse=0.998)
+sparsetrigram <- removeSparseTerms(trigram, sparse=0.9986)
+sparsefourgram <- removeSparseTerms(fourgram, sparse=0.9986)
+
+# Save the sparse files and remove the presparse files
+save ("sparsetdm", file ="sparsetdm.Rdata")
+save ("sparsedtm", file ="sparsetdtm.Rdata")
+save ("sparsebigram", file ="sparsebigram.Rdata")
+save ("sparsetrigram", file ="sparsetrigram.Rdata")
+save ("sparsefourgram", file ="sparsefourgram.Rdata")
+
+rm(tdm)
+rm(dtm)
+rm(bigram)
+rm(trigram)
+rm(fourgram)
 ```
 
 ##Graphical Respresentations
 ```{r graphs,warning=FALSE,message=FALSE}
 # Counts 
-#rowSums(as.matrix(tdm))
-#colSums(as.matrix(dtm))
-#rowSums(as.matrix(bigram))
-#rowSums(as.matrix(trigram))
+#rowSums(as.matrix(sparsetdm))
+#colSums(as.matrix(sparsedtm))
+#rowSums(as.matrix(sparsebigram))
+#rowSums(as.matrix(sparsetrigram))
 
 # Convert to dataframe and make barchart and words cloud
-df <-dfit(tdm)
+df <-dfit(sparsetdm)
 barit(df)
 wordit(df)
 
-df <-dfit(bigram)
+df <-dfit(sparsebigram)
 barit(df)
 wordit(df)
 
-df <-dfit(trigram)
+df <-dfit(sparsetrigram)
 barit(df)
 wordit(df)
 ```

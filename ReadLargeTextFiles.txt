@@ -1,0 +1,24 @@
+#CODE EXAMPLE BY MARC LAURENCELLE
+
+f = "G:/DataCapstone/en_US.B;ogs.txt"
+outdir = "C:/SomeOutputFolder/"
+outfnformat = paste(outdir,basename(f),"_part%.2d.txt",sep="")
+con = file(f,"rt")
+maxnl = 500000
+ofi = 1 #current output file index (iterator)
+repeat
+{
+  writeLines(sprintf("Reading a max. of %d lines from the input",maxnl),con=stdout()) #writing info to R console
+  flush.console() #force display update of R console
+  tbuff = readLines(con,n=maxnl) #text buffer (complete lines read)
+  if(length(tbuff)>0) {
+    currofn = sprintf(outfnformat,ofi) #current output filename
+    writeLines(sprintf("Writing part #%d (%d lines) --> %s",ofi,length(tbuff),basename(currofn)),con=stdout()) #writing info to R console
+    flush.console() #force display update of R console
+    writeLines(tbuff,currofn) #writing text buffer contents into a new (separate) output file
+    ofi = ofi + 1
+  }
+  if(length(tbuff)<maxnl) break; #exits loop if EOF (end of file) was reached within current tbuff
+}
+writeLines(sprintf("Done after creating %d output files in %s folder",ofi,outdir),con=stdout()) #writing info to R console
+close(con)
